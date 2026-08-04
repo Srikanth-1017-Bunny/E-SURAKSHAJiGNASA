@@ -1,0 +1,270 @@
+New version 
+
+# E-WASTE PLATFORM PRD - JIGYASA 2026
+
+## TECH STACK
+React + Vite | Firebase (Firestore + Auth) | Cloudinary | Tailwind CSS | React Router 6
+
+## USER ROLES
+1. **User** - Browse/buy working products, list products (working/not-working), earn rupees/coins, redeem rewards, chat, AI scanner
+2. **Collector** - Collect e-waste, manage wallet, negotiate prices, raise complaints (1 Rupee = 2 Coins)
+3. **Controller** - Admin who verifies everything, manages payments, logistics, gift codes, access all chats
+
+## DATABASE (FIRESTORE COLLECTIONS)
+
+**users**: userId, role, email, phone, name, profileImage, walletBalance, coinsBalance, address{street, city, state, pincode, lat, lng}, bankDetails{accountNumber, ifsc, upiId}, isVerified, collectorDetails{govId, verificationVideo, verificationStatus, verifiedBy}
+
+**products**: productId, title, description, category, condition(working/not-working), price, images[], sellerId, sellerName, location{address, city, pincode, lat, lng}, contactInfo{phone, email}, status(active/sold/collected/pending/spam), verificationStatus(pending/verified/rejected), verifiedBy, aiScanData{eligibility, estimatedPrice, condition}, views, createdAt
+
+**transactions**: transactionId, type(purchase/collection/reward_redemption/wallet_addition), productId, buyerId, sellerId, collectorId, amount, currency(rupees/coins), status(pending/in_transit/completed/cancelled), transportRequest{buyerAddress, sellerAddress, trackingId, logisticsPartner}, createdAt
+
+**chats**: chatId(userId1_userId2_productId), participants[], productId, messages[{messageId, senderId, text, timestamp, isRead}], lastMessage, lastMessageAt
+
+**requests**: requestId, type(collector_verification/payment_redemption/wallet_addition/product_verification/complaint), userId, userName, status(pending/approved/rejected), priority, collectorData{documents[], phone, address}, redemptionData{amount, method, accountDetails}, walletData{amount, utrNumber, paymentProof}, productData{productId}, complaintData{against, reason, evidence[], productId}, processedBy, notes, createdAt
+
+**rewards**: rewardId, title, description, brand, image, coinsRequired, category, inStock
+
+**rewardRedemptions**: redemptionId, userId, rewardId, coinsSpent, giftCode, status
+
+**giftCodes**: codeId, code, rewardId, isUsed, usedBy, createdBy
+
+**logistics**: logisticsId, transactionId, trackingId, status(requested/picked_up/in_transit/delivered), pickupAddress, deliveryAddress, requestedBy, logisticsPartner
+
+**notifications**: notificationId, userId, type, title, message, read, link, createdAt
+
+## ALL PAGES & ROUTES
+
+### AUTH
+- `/signup` - Role selection, email/password/phone, OTP verify, profile image upload, address with map. Collectors: extra fields (gov ID, verification video)
+- `/login` - Email/password + OTP option, role-based redirect
+- `/change-password` - Current password verify, new password
+
+### USER ROUTES
+- `/user/home` - Dashboard: earnings cards (wallet + coins), quick actions (list/scan/rewards), product feed (grid), filters (category/price/location), search
+- `/product/:id` - Image carousel, product details, seller info. Logged-in: full address+map, contact button (chat), buy button. Non-logged: limited info, "signup to contact" CTA
+- `/user/list-product` - Multi-step form: product info, condition, pricing (rupees/coins), multi-image upload, address with map, contact info, submit for verification
+- `/user/my-products` - Tabs: Active, Sold, Collected. Product cards with status, edit/delete
+- `/user/scan-product` - Camera/upload image, AI analysis, show: eligibility, estimated price/coins, condition, "List product" button (pre-fills form)
+- `/user/rewards` - Grid of rewards, filter by category/coins, reward cards (image, brand, title, coins needed), redeem button
+- `/user/reward/:id` - Full reward details, redemption confirmation, check balance, create redemption
+- `/user/wallet` - Balance display (rupees + coins separate), transaction history, "Redeem to Bank/UPI" button, redemption form (amount, method, account details), creates request
+- `/user/chats` - List all chats, real-time updates, unread indicators, click to open
+- `/user/chat/:id` - Real-time messaging, product context, "Request Transport" button, transport form (both addresses)
+- `/user/purchases` - Purchase history, transaction details, tracking info
+
+### COLLECTOR ROUTES
+- `/collector/home` - Wallet balance, "Add Money" button, QR code (admin UPI), UTR submission form (amount, UTR, proof upload), e-waste products list, filters
+- `/collector/products` - Browse not-working products, filter by city/coins, "Contact Seller" button, negotiation chat
+- `/collector/history` - Collected products table, status updates, payment details
+- `/collector/chats` - Same as user chats + collection request option, update product status
+- `/collector/complaint` - Form: against user, reason, product ID, evidence upload, creates complaint request
+
+### CONTROLLER ROUTES
+- `/controller/dashboard` - Overview cards (pending requests by type), quick stats (users, collectors, products, transactions), recent activity feed
+- `/controller/requests` - Tabs: All, Collector Verification, Payment Redemption, Wallet Addition, Product Verification, Complaints. Table with sorting/filtering, priority indicators
+- `/controller/request/:id` - Full request details, user profile access, chat access (view-only), approve/reject buttons, notes field. Type-specific: 
+  * Collector Verification: view docs/video, schedule video call
+  * Payment Redemption: verify bank/UPI, mark as paid
+  * Wallet Addition: view proof, verify UTR, approve & add
+  * Product Verification: verify or mark spam
+  * Complaints: view evidence, take action
+- `/controller/users` - Users table, filter by role/status, view details, suspend/ban
+- `/controller/products` - Products table, filter by status/condition, verify/delete/mark spam, update status
+- `/controller/gift-codes` - View all codes, add new codes, associate with rewards, mark used
+- `/controller/logistics` - Transport requests table, generate print label, request pickup (logistics API), tracking info, update status
+- `/controller/logistics/:id` - Full logistics detail, addresses, product info, tracking timeline
+
+### COMMON
+- `/profile` - View/edit profile, change password link, logout
+- `/notifications` - All notifications list, mark as read, deep links
+- `/` - Landing page (public)
+- `/404` - Not found
+- `/unauthorized` - Access denied
+
+## FOLDER STRUCTURE
+```
+src/
+├── components/
+│   ├── common/
+│   │   ├── Navbar.jsx
+│   │   ├── Footer.jsx
+│   │   ├── LoadingSpinner.jsx
+│   │   ├── Modal.jsx
+│   │   ├── Toast.jsx
+│   │   ├── EmptyState.jsx
+│   │   ├── ErrorBoundary.jsx
+│   │   ├── Breadcrumbs.jsx
+│   │   ├── Pagination.jsx
+│   │   ├── ConfirmDialog.jsx
+│   │   ├── ImageUploader.jsx
+│   │   ├── ImageUploadMultiple.jsx
+│   │   ├── AddressSelector.jsx
+│   │   └── ProtectedRoute.jsx
+│   ├── auth/
+│   │   ├── SignUpForm.jsx
+│   │   ├── LoginForm.jsx
+│   │   ├── OTPVerification.jsx
+│   │   ├── RoleSelector.jsx
+│   │   └── ChangePasswordForm.jsx
+│   ├── user/
+│   │   ├── ProductCard.jsx
+│   │   ├── EarningsCard.jsx
+│   │   ├── ProductFilters.jsx
+│   │   ├── ProductGrid.jsx
+│   │   ├── ImageCarousel.jsx
+│   │   ├── LocationMap.jsx
+│   │   ├── ContactSellerButton.jsx
+│   │   ├── ProductListingForm.jsx
+│   │   ├── RewardCard.jsx
+│   │   ├── WalletBalanceCard.jsx
+│   │   ├── TransactionHistory.jsx
+│   │   ├── RedemptionForm.jsx
+│   │   ├── CameraCapture.jsx
+│   │   ├── ScanResults.jsx
+│   │   └── ImageUploadSingle.jsx
+│   ├── chat/
+│   │   ├── ChatPreview.jsx
+│   │   ├── MessageBubble.jsx
+│   │   ├── MessageInput.jsx
+│   │   └── TransportRequestForm.jsx
+│   ├── collector/
+│   │   ├── WalletCard.jsx
+│   │   ├── AddMoneySection.jsx
+│   │   ├── UTRSubmissionForm.jsx
+│   │   ├── QRCodeDisplay.jsx
+│   │   ├── CollectionProductCard.jsx
+│   │   └── CollectionConfirmation.jsx
+│   ├── controller/
+│   │   ├── StatsCard.jsx
+│   │   ├── RequestsTable.jsx
+│   │   ├── ApprovalButtons.jsx
+│   │   ├── UserActionsDropdown.jsx
+│   │   ├── LogisticsTable.jsx
+│   │   ├── PrintLabel.jsx
+│   │   ├── TrackingTimeline.jsx
+│   │   └── AddGiftCodeForm.jsx
+│   └── notifications/
+│       ├── NotificationBell.jsx
+│       ├── NotificationItem.jsx
+│       └── NotificationDropdown.jsx
+├── pages/
+│   ├── auth/
+│   │   ├── SignUpPage.jsx
+│   │   ├── LoginPage.jsx
+│   │   └── ChangePasswordPage.jsx
+│   ├── user/
+│   │   ├── UserDashboard.jsx
+│   │   ├── ProductDetailPage.jsx
+│   │   ├── ListProductPage.jsx
+│   │   ├── MyProductsPage.jsx
+│   │   ├── AIScannerPage.jsx
+│   │   ├── RewardsPage.jsx
+│   │   ├── RewardDetailPage.jsx
+│   │   ├── WalletPage.jsx
+│   │   ├── ChatsPage.jsx
+│   │   ├── ChatDetailPage.jsx
+│   │   └── PurchaseHistoryPage.jsx
+│   ├── collector/
+│   │   ├── CollectorDashboard.jsx
+│   │   ├── CollectionProductsPage.jsx
+│   │   ├── CollectionHistoryPage.jsx
+│   │   └── ComplaintPage.jsx
+│   ├── controller/
+│   │   ├── ControllerDashboard.jsx
+│   │   ├── RequestsManagementPage.jsx
+│   │   ├── RequestDetailPage.jsx
+│   │   ├── UsersManagementPage.jsx
+│   │   ├── ProductsManagementPage.jsx
+│   │   ├── GiftCodesPage.jsx
+│   │   ├── LogisticsPage.jsx
+│   │   └── LogisticsDetailPage.jsx
+│   ├── LandingPage.jsx
+│   ├── NotFoundPage.jsx
+│   ├── UnauthorizedPage.jsx
+│   ├── ProfilePage.jsx
+│   └── NotificationsPage.jsx
+├── contexts/
+│   ├── AuthContext.jsx
+│   └── ToastContext.jsx
+├── hooks/
+│   ├── useAuth.js
+│   ├── useProducts.js
+│   ├── useProductDetail.js
+│   ├── useUserWallet.js
+│   ├── useChats.js
+│   ├── useChatMessages.js
+│   ├── useWallet.js
+│   ├── useRewards.js
+│   ├── useTransactions.js
+│   ├── useAIScanner.js
+│   ├── useCollectorWallet.js
+│   ├── useCollections.js
+│   ├── useRequests.js
+│   ├── useControllerStats.js
+│   ├── useGiftCodes.js
+│   ├── useLogistics.js
+│   ├── useNotifications.js
+│   └── useToast.js
+├── utils/
+│   ├── firebase.js
+│   ├── cloudinary.js
+│   ├── validation.js
+│   ├── formatting.js
+│   ├── conversion.js
+│   ├── firestoreHelpers.js
+│   ├── errorHandling.js
+│   ├── localStorage.js
+│   ├── imageHelpers.js
+│   ├── constants.js
+│   ├── chatHelpers.js
+│   ├── aiMockAPI.js
+│   ├── logisticsMockAPI.js
+│   ├── pdfGenerator.js
+│   └── notificationHelpers.js
+├── routes/
+│   ├── AppRoutes.jsx
+│   ├── ProtectedRoute.jsx
+│   └── RoleProtectedRoute.jsx
+├── layouts/
+│   ├── UserLayout.jsx
+│   ├── CollectorLayout.jsx
+│   └── ControllerLayout.jsx
+├── App.jsx
+└── main.jsx
+```
+
+## KEY FLOWS
+
+**Working Product Purchase**: User A lists → Controller verifies → User B buys → Chat → Transport request → Controller logistics → Delivered → Money to User A wallet
+
+**E-waste Collection**: User lists e-waste → Controller verifies → Collector views → Chat negotiation → Collector pickup → Mark collected → Deduct coins from Collector (1₹=2coins), Add coins to User
+
+**Collector Add Money**: Add Money → Show QR → Collector pays → Enter UTR + proof → Request created → Controller verifies → Wallet updated
+
+## BUSINESS RULES
+- Working products: Rupees | Not-working: Coins
+- Collectors pay: 1 Rupee = 2 Coins
+- All products need Controller verification
+- Collectors need Controller verification
+- Controllers = whitelisted emails only
+
+## ENVIRONMENT VARIABLES
+```
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+VITE_CLOUDINARY_CLOUD_NAME
+VITE_CLOUDINARY_UPLOAD_PRESET
+VITE_GOOGLE_MAPS_API_KEY
+```
+
+## NPM PACKAGES
+react, react-dom, react-router-dom, firebase, axios, tailwindcss, date-fns, react-icons, qrcode.react, jspdf, react-toastify
+
+## DEPLOYMENT
+Vercel: Push to GitHub → Connect → Add env vars → Deploy (2 min, $0/month)
+
+END OF PRD
