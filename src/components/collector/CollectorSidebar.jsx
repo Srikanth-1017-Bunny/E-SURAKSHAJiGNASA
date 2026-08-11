@@ -2,31 +2,31 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-    LayoutDashboard, Map, ClipboardList, Ticket,
-    Package, Wallet, TrendingUp, Bell,
+    LayoutDashboard, Map, ClipboardList,
+    Package, Banknote, TrendingUp, Bell,
     AlertTriangle, User, Settings, Phone,
     Shield, ChevronRight, Headset
 } from 'lucide-react';
 
-const CollectorSidebar = () => {
+const CollectorSidebar = ({ onClose }) => {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
 
     const navItems = [
-        { name: 'Dashboard',         path: '/collector/home',      icon: LayoutDashboard },
-        { name: 'My Route',          path: '/collector/route',     icon: Map },
-        { name: 'Upcoming Pickups',  path: '/collector/tickets',   icon: ClipboardList,  badge: null },
-        { name: 'Ticket Queue',      path: '/collector/tickets',   icon: Ticket,         badge: null },
-        { name: 'Recent Pickups',    path: '/collector/history',   icon: Package },
-        { name: 'Earnings',          path: '/collector/earnings',  icon: TrendingUp },
-        { name: 'Notifications',     path: '/collector/home',      icon: Bell,           badge: null },
-        { name: 'Complaints',        path: '/collector/complaint', icon: AlertTriangle },
-        { name: 'Profile',           path: '/collector/profile',   icon: User },
-        { name: 'Settings',          path: '/collector/settings',  icon: Settings },
+        { name: 'Dashboard', path: '/collector/home', icon: LayoutDashboard },
+        { name: 'My Route', path: '/collector/route', icon: Map },
+        { name: 'Upcoming Pickups', path: '/collector/tickets', icon: ClipboardList, badge: null },
+        { name: 'Recent Pickups', path: '/collector/history', icon: Package },
+        { name: 'Earnings', path: '/collector/earnings', icon: TrendingUp },
+        { name: 'Withdraw Earnings', path: '/collector/withdraw', icon: Banknote },
+        { name: 'Notifications', path: '/collector/home', icon: Bell, badge: null },
+        { name: 'Complaints', path: '/collector/complaint', icon: AlertTriangle },
+        { name: 'Profile', path: '/collector/profile', icon: User },
+        { name: 'Settings', path: '/collector/settings', icon: Settings },
     ];
 
     return (
-        <aside className="w-64 bg-[#063b2f] text-white flex flex-col h-screen fixed left-0 top-0 overflow-y-auto z-50"
+        <aside className="w-64 bg-[#063b2f] text-white flex flex-col h-full overflow-y-auto z-50 shadow-2xl md:shadow-none"
             style={{ scrollbarWidth: 'none' }}>
 
             {/* ── Logo / Header ─────────────────────── */}
@@ -47,6 +47,7 @@ const CollectorSidebar = () => {
                         key={item.name + item.path}
                         to={item.path}
                         end={item.path === '/collector/home'}
+                        onClick={() => onClose && onClose()}
                         className={({ isActive }) => `
                             flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                             transition-all duration-150 group relative

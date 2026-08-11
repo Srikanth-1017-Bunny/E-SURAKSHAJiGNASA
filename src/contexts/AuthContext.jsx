@@ -44,9 +44,25 @@ export const AuthProvider = ({ children }) => {
     };
 
     const loginWithGoogle = async () => {
-        // Logic for google auth would need careful role handling
-        // For now, simple popup
-        return signInWithPopup(auth, googleProvider);
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+
+        const userRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userRef);
+        if (!docSnap.exists()) {
+            await setDoc(userRef, {
+                email: user.email,
+                role: 'user',
+                uid: user.uid,
+                createdAt: new Date(),
+                isVerified: true,
+                name: user.displayName,
+                profileImage: user.photoURL,
+                walletBalance: 0,
+                coinsBalance: 0,
+            });
+        }
+        return result;
     }
 
     const logout = () => {

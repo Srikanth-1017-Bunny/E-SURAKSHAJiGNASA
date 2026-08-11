@@ -1,71 +1,123 @@
-import React from 'react';
-import { useCollector } from '../../hooks/useCollector';
-import { FaHistory, FaCheckCircle, FaRupeeSign, FaCalendarDay, FaBox } from 'react-icons/fa';
-import { formatDate, formatCurrency } from '../../utils/formatting';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../../utils/firebase';
+import { Package, CheckCircle, MapPin, Clock, IndianRupee } from 'lucide-react';
+
+const formatDate = (ts) => {
+    if (!ts) return 'N/A';
+    const date = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) +
+        ' · ' + date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+};
 
 const CollectionHistoryPage = () => {
-    const { history, loading } = useCollector();
+    const { currentUser } = useAuth();
+    const navigate = useNavigate();
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!currentUser) return;
+        const q = query(
+            collection(db, 'assignments'),
+            where('collectorId', '==', currentUser.uid),
+            where('status', '==', 'Completed')
+        );
+        const unsub = onSnapshot(q, (snap) => {
+            const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Sort by completedAt desc (most recent first)
+            docs.sort((a, b) => {
+                const aT = a.completedAt?.seconds || a.assignedAt?.seconds || 0;
+                const bT = b.completedAt?.seconds || b.assignedAt?.seconds || 0;
+                return bT - aT;
+            });
+            setHistory(docs);
+            setLoading(false);
+        }, () => setLoading(false));
+        return unsub;
+    }, [currentUser]);
+
+    const totalEarned = history.reduce((sum, h) => {
+        return sum + Math.round(50 + (h.estimatedValue || 0) * 0.1);
+    }, 0);
 
     if (loading) return (
-        <div className="h-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-100 border-t-indigo-600"></div>
+        <div className="h-64 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
         </div>
     );
 
     return (
-        <div className="space-y-8">
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                <FaHistory className="text-indigo-600" /> Collection History
-                <span className="bg-slate-100 text-slate-500 text-sm py-1 px-3 rounded-full">{history.length}</span>
-            </h1>
-
-            {history.length > 0 ? (
-                <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 border-b border-slate-100">
-                                <tr>
-                                    <th className="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Product Details</th>
-                                    <th className="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">Completion Date</th>
-                                    <th className="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Incentive</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {history.map(item => (
-                                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
-                                                    <FaBox className="text-xl" />
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-slate-800 text-lg leading-tight">{item.productTitle}</div>
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">ID: {item.id.slice(0, 8)}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-2 text-slate-600 font-medium">
-                                                <FaCalendarDay className="text-slate-300" />
-                                                {formatDate(item.completedAt)}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <span className="font-black text-emerald-600 text-lg py-1 px-3 bg-emerald-50 rounded-lg">
-                                                {formatCurrency(item.incentive || 0)}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+        <div className="space-y-6 max-w-[1200px] mx-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-white to-slate-50 p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                        <Package size={20} className="text-emerald-600" /> Recent Pickups
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-0.5">{history.length} completed pickups</p>
+                </div>
+                {history.length > 0 && (
+                    <div className="text-right">
+                        <p className="text-xs text-slate-400 font-semibold">Total Earned</p>
+                        <p className="text-xl font-black text-emerald-600 flex items-center gap-0.5">
+                            <IndianRupee size={16} />{totalEarned}
+                        </p>
                     </div>
+                )}
+            </div>
+
+            {/* List */}
+            {history.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400">
+                    <CheckCircle size={48} className="mb-4 text-slate-200" />
+                    <h3 className="text-lg font-black text-slate-600">No Completed Pickups Yet</h3>
+                    <p className="text-sm mt-1">Completed pickup assignments will appear here.</p>
                 </div>
             ) : (
-                <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-                    <FaCheckCircle className="text-6xl text-slate-200 mx-auto mb-6" />
-                    <h3 className="text-xl font-black text-slate-800">No History Yet</h3>
-                    <p className="text-slate-400 font-medium mt-2">Your completed collections will appear here.</p>
+                <div className="grid gap-3">
+                    {history.map((item, idx) => {
+                        const earning = Math.round(50 + (item.estimatedValue || 0) * 0.1);
+                        return (
+                            <div key={item.id}
+                                className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-4">
+                                <div className="flex items-start gap-4">
+                                    {/* Icon / Number */}
+                                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-2xl flex-shrink-0">
+                                        {item.icon || '📦'}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <p className="font-black text-slate-800 text-sm">{item.item || 'E-Waste Item'}</p>
+                                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                Completed
+                                            </span>
+                                        </div>
+                                        {item.pickupAddress && (
+                                            <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <MapPin size={10} /> {item.pickupAddress}
+                                            </p>
+                                        )}
+                                        {item.userName && (
+                                            <p className="text-xs text-blue-500 font-semibold mt-0.5">👤 {item.userName}</p>
+                                        )}
+                                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                                            <Clock size={10} /> {formatDate(item.completedAt || item.assignedAt)}
+                                        </p>
+                                    </div>
+                                    {/* Earning */}
+                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                        <p className="text-base font-black text-emerald-600 flex items-center gap-0.5">
+                                            <IndianRupee size={13} />{earning}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400">earned</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

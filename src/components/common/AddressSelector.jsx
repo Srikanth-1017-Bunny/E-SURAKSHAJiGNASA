@@ -41,7 +41,15 @@ const AddressSelector = ({ value, onChange, readOnly = false, showMap = true }) 
     const [address, setAddress] = useState(value || { street: '', city: '', state: '', pincode: '', country: '', lat: 17.3850, lng: 78.4867 });
 
     const handleChange = (field, val) => {
-        const newAddress = { ...address, [field]: val };
+        let newAddress = { ...address, [field]: val };
+
+        if (field === 'city' && !readOnly) {
+            const c = val.toLowerCase().trim();
+            if (c === 'hyderabad') { newAddress.lat = 17.3850; newAddress.lng = 78.4867; }
+            else if (c === 'nizamabad') { newAddress.lat = 18.6704; newAddress.lng = 78.0937; }
+            else if (c === 'medchal') { newAddress.lat = 17.6294; newAddress.lng = 78.4811; }
+        }
+
         setAddress(newAddress);
         if (onChange) onChange(newAddress);
     };
@@ -137,11 +145,9 @@ const AddressSelector = ({ value, onChange, readOnly = false, showMap = true }) 
                             </span>
                             <input
                                 type="text"
-                                placeholder="Enter country"
-                                value={address.country}
-                                readOnly={readOnly}
-                                onChange={(e) => handleChange('country', e.target.value)}
-                                className={`w-full pl-11 pr-4 py-2.5 text-sm ${readOnly ? 'bg-slate-50 cursor-not-allowed' : 'bg-slate-50/50'} border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:bg-white transition-all font-medium text-slate-800 placeholder:text-slate-400`}
+                                value="India"
+                                readOnly={true}
+                                className="w-full pl-11 pr-4 py-2.5 text-sm bg-slate-50 cursor-not-allowed border border-slate-200 rounded-lg outline-none font-medium text-slate-800"
                             />
                         </div>
                     </div>

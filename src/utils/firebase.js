@@ -20,6 +20,7 @@ setPersistence(auth, browserSessionPersistence).catch((error) => {
     console.error("Auth persistence error:", error);
 });
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export default app;

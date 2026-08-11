@@ -21,8 +21,8 @@ import {
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl:       'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl:     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
 const makeIcon = (num, color = '#10b981') => new L.DivIcon({
@@ -56,9 +56,9 @@ const getTodayStr = () =>
 // ── Priority badge ────────────────────────────────────────────────────────────
 const PriorityBadge = ({ priority }) => {
     const cfg = {
-        High:   'bg-red-100   text-red-600   border-red-200',
+        High: 'bg-red-100   text-red-600   border-red-200',
         Medium: 'bg-amber-100 text-amber-600 border-amber-200',
-        Low:    'bg-emerald-100 text-emerald-600 border-emerald-200',
+        Low: 'bg-emerald-100 text-emerald-600 border-emerald-200',
     };
     return (
         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${cfg[priority] || cfg.Low}`}>
@@ -296,15 +296,15 @@ const CollectorDashboard = () => {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
 
-    const [assignments, setAssignments]               = useState([]);
+    const [assignments, setAssignments] = useState([]);
     const [completedAssignments, setCompletedAssignments] = useState([]);
-    const [newBanner, setNewBanner]                   = useState(null);
-    const [selectedTicket, setSelectedTicket]         = useState(null);
-    const [notifCount, setNotifCount]                 = useState(0);
-    const [toast, setToast]                           = useState(null);
-    const [notifOpen, setNotifOpen]                   = useState(false);
+    const [newBanner, setNewBanner] = useState(null);
+    const [selectedTicket, setSelectedTicket] = useState(null);
+    const [notifCount, setNotifCount] = useState(0);
+    const [toast, setToast] = useState(null);
+    const [notifOpen, setNotifOpen] = useState(false);
     const [loadingAssignments, setLoadingAssignments] = useState(true);
-    const [routeStarted, setRouteStarted]             = useState(false);
+    const [routeStarted, setRouteStarted] = useState(false);
 
     // ── Real-time: pending assignments ──────────────────────────────────
     useEffect(() => {
@@ -360,31 +360,31 @@ const CollectorDashboard = () => {
     }, []);
 
     // ── Derived data ────────────────────────────────────────────────────
-    const pendingCount   = assignments.length;
+    const pendingCount = assignments.length;
     const completedCount = completedAssignments.length;
-    const todayPickups   = pendingCount + completedCount;
-    const totalEarnings  = completedAssignments.reduce((s, a) => s + (a.estimatedValue || 0), 0);
+    const todayPickups = pendingCount + completedCount;
+    const totalEarnings = completedAssignments.reduce((s, a) => s + (a.estimatedValue || 0), 0);
 
     const routePoints = useMemo(() =>
         assignments
             .filter(a => a.ticketLocation?.lat && a.ticketLocation?.lng)
             .map((a, i) => ({
-                lat:      a.ticketLocation.lat,
-                lng:      a.ticketLocation.lng,
-                name:     a.pickupAddress || a.location || `Stop ${i + 1}`,
-                time:     a.scheduledTime || formatTime(a.assignedAt),
-                item:     a.item,
+                lat: a.ticketLocation.lat,
+                lng: a.ticketLocation.lng,
+                name: a.pickupAddress || a.location || `Stop ${i + 1}`,
+                time: a.scheduledTime || formatTime(a.assignedAt),
+                item: a.item,
                 ticketId: a.ticketId,
-                icon:     a.icon || '📦',
+                icon: a.icon || '📦',
                 priority: a.priority,
                 userName: a.userName,
                 userPhone: a.userPhone,
-                ref:      a,
+                ref: a,
             })),
         [assignments]
     );
 
-    const polyline  = routePoints.map(p => [p.lat, p.lng]);
+    const polyline = routePoints.map(p => [p.lat, p.lng]);
     const mapCenter = routePoints.length > 0
         ? [
             routePoints.reduce((s, p) => s + p.lat, 0) / routePoints.length,
@@ -412,8 +412,8 @@ const CollectorDashboard = () => {
     // Upcoming pickups (show first 5 pending)
     const upcomingPickups = assignments.slice(0, 5);
 
-    const greeting  = getGreeting();
-    const todayStr  = getTodayStr();
+    const greeting = getGreeting();
+    const todayStr = getTodayStr();
     const firstName = currentUser?.displayName?.split(' ')[0] || 'Collector';
 
     return (
@@ -445,7 +445,7 @@ const CollectorDashboard = () => {
             <div className="dash-anim relative bg-gradient-to-br from-emerald-900 via-teal-900 to-emerald-900 rounded-[2rem] p-6 md:p-8 overflow-visible shadow-2xl border border-emerald-800 flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
                 <div className="absolute inset-0 opacity-20 rounded-[2rem]" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1200")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/90 via-teal-900/80 to-transparent z-10 rounded-[2rem]"></div>
-                
+
                 <div className="relative z-20 text-white space-y-3">
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 backdrop-blur-md rounded-full border border-emerald-400/30">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
@@ -459,7 +459,7 @@ const CollectorDashboard = () => {
                         {' · '} Estimated Time: <strong className="text-white">{estTimeStr}</strong>
                     </p>
                 </div>
-                
+
                 <div className="relative z-20 flex items-center gap-3 self-start md:self-center">
                     {/* Notifications */}
                     <div className="relative">
@@ -600,11 +600,10 @@ const CollectorDashboard = () => {
                         </a>
                         <button
                             onClick={() => { setRouteStarted(true); setToast({ msg: 'Route started! Drive safe 🚚', type: 'success' }); }}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all ${
-                                routeStarted
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all ${routeStarted
                                     ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                                     : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 shadow-emerald-200 hover:shadow-lg'
-                            }`}>
+                                }`}>
                             <Play size={15} fill={routeStarted ? 'currentColor' : 'none'} />
                             {routeStarted ? 'Route Active' : 'Start Route'}
                         </button>
@@ -764,7 +763,7 @@ const CollectorDashboard = () => {
                 <div className="absolute -right-2 -bottom-8 w-48 h-48 bg-white/5 rounded-full" />
                 <div className="absolute right-32 top-2 w-16 h-16 bg-white/5 rounded-full" />
 
-                <div className="relative flex items-center justify-between px-7 py-6">
+                <div className="relative flex flex-col md:flex-row items-center justify-between px-7 py-6 gap-4">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center flex-shrink-0">
                             <span className="text-2xl">🌿</span>
@@ -776,15 +775,13 @@ const CollectorDashboard = () => {
                             </p>
                         </div>
                     </div>
-                    <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
-                        {/* Mini eco illustration */}
-                        <div className="flex items-end gap-1 opacity-70">
-                            <div className="w-2 bg-white/40 rounded-t-sm" style={{ height: 24 }} />
-                            <div className="w-2 bg-white/40 rounded-t-sm" style={{ height: 36 }} />
-                            <div className="w-2 bg-white/40 rounded-t-sm" style={{ height: 20 }} />
-                            <span className="text-2xl ml-1">🌳</span>
-                            <span className="text-xl">🌬️</span>
-                        </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/collector/withdraw')}
+                            className="w-full md:w-auto px-6 py-2.5 rounded-xl bg-white text-emerald-700 font-bold text-sm shadow-md hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                            Withdraw Earnings <ArrowRight size={16} />
+                        </button>
                     </div>
                 </div>
             </div>

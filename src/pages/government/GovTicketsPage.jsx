@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, doc, updateDoc, addDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
-import { Filter, Search, X, CheckCircle, MapPin, Clock, UserCheck, ChevronRight, FileText } from 'lucide-react';
+import { Search, X, MapPin, Clock, UserCheck, FileText, Navigation } from 'lucide-react';
 
 const formatTime = (ts) => {
     if (!ts) return 'N/A';
@@ -30,6 +30,17 @@ const determinePriority = (value) => {
 const getCategoryIcon = (category) => {
     const map = { 'Mobile': '📱', 'Laptop': '💻', 'Television': '📺', 'Refrigerator': '🧊', 'Washing Machine': '🫧' };
     return map[category] || '📦';
+};
+
+// Haversine formula — distance in km between two lat/lng points
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
 const GovTicketsPage = () => {
@@ -66,23 +77,45 @@ const GovTicketsPage = () => {
 
     const displayed = tab === 'pending' ? pending : tab === 'assigned' ? assigned : completed;
     const filtered = displayed.filter(t =>
-        !search || (t.ticketId || t.id || '').toLowerCase().includes(search.toLowerCase()) ||
+        !search ||
+        (t.ticketId || t.id || '').toLowerCase().includes(search.toLowerCase()) ||
         (t.deviceBrand || '').toLowerCase().includes(search.toLowerCase()) ||
         (t.pickupAddress || '').toLowerCase().includes(search.toLowerCase())
     );
+
+    // Sort collectors by distance from the ticket's pickup location (Haversine)
+    const sortedCollectors = useMemo(() => {
+        if (!assignModal) return collectors;
+        const ticketLat = assignModal.location?.lat;
+        const ticketLng = assignModal.location?.lng;
+
+        return [...collectors].map(c => {
+            const cLat = c.location?.lat || c.address?.location?.lat;
+            const cLng = c.location?.lng || c.address?.location?.lng;
+            let distKm = null;
+            if (ticketLat && ticketLng && cLat && cLng) {
+                distKm = haversineKm(ticketLat, ticketLng, cLat, cLng);
+            }
+            return { ...c, distKm };
+        }).sort((a, b) => {
+            if (a.distKm === null && b.distKm === null) return 0;
+            if (a.distKm === null) return 1;
+            if (b.distKm === null) return -1;
+            return a.distKm - b.distKm;
+        });
+    }, [assignModal, collectors]);
 
     const handleAssign = async () => {
         if (!selected || !assignModal) return;
         setAssigning(true);
         try {
-            const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
-
+            const otp = Math.floor(100000 + Math.random() * 900000);
             await updateDoc(doc(db, 'tickets', assignModal.id), {
                 status: 'Assigned',
                 collectorId: selected.uid,
                 collectorName: selected.displayName || selected.name || selected.email?.split('@')[0],
                 assignedTime: serverTimestamp(),
-                otp: otp,
+                otp,
             });
             await addDoc(collection(db, 'assignments'), {
                 ticketId: assignModal.ticketId || assignModal.id,
@@ -102,7 +135,7 @@ const GovTicketsPage = () => {
                 grade: assignModal.grade || '',
                 deviceImage: assignModal.image || null,
                 ticketRef: assignModal.id,
-                otp: otp,
+                otp,
             });
             await addDoc(collection(db, 'notifications'), {
                 userId: selected.uid,
@@ -168,7 +201,7 @@ const GovTicketsPage = () => {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                                            <p className="font-black text-slate-800 text-sm">{t.ticketId || t.id?.slice(0,8)}</p>
+                                            <p className="font-black text-slate-800 text-sm">{t.ticketId || t.id?.slice(0, 8)}</p>
                                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getPriorityStyle(priority)}`}>{priority}</span>
                                             {t.status && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${t.status === 'Submitted' ? 'bg-amber-100 text-amber-700' : t.status === 'Assigned' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{t.status}</span>}
                                         </div>
@@ -181,7 +214,7 @@ const GovTicketsPage = () => {
                                         <p className="text-xs text-slate-400 font-semibold flex items-center gap-1"><Clock size={10} /> {formatTime(t.createdAt)}</p>
                                         {t.estimatedValue > 0 && <p className="text-sm font-black text-emerald-600">₹{t.estimatedValue}</p>}
                                         {tab === 'pending' && (
-                                            <button onClick={() => setAssignModal(t)}
+                                            <button onClick={() => { setAssignModal(t); setSelected(null); }}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs font-bold hover:from-blue-700 hover:to-indigo-700 shadow-sm">
                                                 <UserCheck size={12} /> Assign
                                             </button>
@@ -205,21 +238,46 @@ const GovTicketsPage = () => {
                                 <button onClick={() => setAssignModal(null)} className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30"><X size={15} /></button>
                             </div>
                             <p className="text-blue-200 text-xs mt-1">{assignModal.deviceBrand} {assignModal.deviceModel} · {assignModal.ticketId}</p>
+                            {assignModal.pickupAddress && (
+                                <p className="text-blue-100 text-xs mt-0.5 flex items-center gap-1">
+                                    <MapPin size={10} /> {assignModal.pickupAddress}
+                                </p>
+                            )}
                         </div>
                         <div className="p-5">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-3">Available Collectors ({collectors.length})</p>
-                            <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
-                                {collectors.map(c => (
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Collectors — Sorted by Proximity ({collectors.length})
+                                </p>
+                                {assignModal.location?.lat && (
+                                    <span className="text-[9px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full border border-blue-100 flex items-center gap-1">
+                                        <Navigation size={8} /> Location-based
+                                    </span>
+                                )}
+                            </div>
+                            <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+                                {sortedCollectors.map(c => (
                                     <div key={c.uid} onClick={() => setSelected(c)}
                                         className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selected?.uid === c.uid ? 'border-blue-500 bg-blue-50' : 'border-slate-100 hover:border-blue-200 hover:bg-slate-50'}`}>
-                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-sm">
+                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-sm flex-shrink-0">
                                             {(c.displayName || c.name || c.email || '?').charAt(0).toUpperCase()}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-sm text-slate-800">{c.displayName || c.name || c.email?.split('@')[0]}</p>
-                                            {c.address?.city && <p className="text-xs text-slate-400">{c.address.city} · {c.email}</p>}
+                                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                {c.address?.city && <p className="text-xs text-slate-400">{c.address.city}</p>}
+                                                {c.distKm !== null ? (
+                                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${c.distKm < 5 ? 'bg-emerald-100 text-emerald-700' : c.distKm < 15 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                        📍 {c.distKm < 1 ? `${Math.round(c.distKm * 1000)}m` : `${c.distKm.toFixed(1)} km`}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                                                        Unknown location
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selected?.uid === c.uid ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}`}>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selected?.uid === c.uid ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}`}>
                                             {selected?.uid === c.uid && <div className="w-2 h-2 bg-white rounded-full" />}
                                         </div>
                                     </div>

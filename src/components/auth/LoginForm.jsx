@@ -39,6 +39,7 @@ const LoginForm = () => {
     };
 
     const handleGoogleLogin = async () => {
+        setLoading(true);
         try {
             const result = await loginWithGoogle();
 
@@ -52,7 +53,16 @@ const LoginForm = () => {
             else if (role === 'collector') navigate('/collector/home');
             else navigate('/user/home');
         } catch (error) {
-            toast.error("Google login failed");
+            console.error("Google login error:", error);
+            if (error.code === 'auth/popup-closed-by-user') {
+                toast.info("Sign-in cancelled");
+            } else if (error.code === 'auth/popup-blocked') {
+                toast.error("Popup blocked by browser. Please allow popups for this site.");
+            } else {
+                toast.error("Google sign-in failed: " + (error.message || "Unknown error"));
+            }
+        } finally {
+            setLoading(false);
         }
     }
 

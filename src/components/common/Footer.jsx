@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaEnvelope, FaPhone, FaMapMarkerAlt, FaRecycle, FaStar, FaHeart, FaPaperPlane } from 'react-icons/fa';
 import Modal from './Modal';
+import { toast } from 'react-toastify';
 
 const Footer = () => {
     const [showContactModal, setShowContactModal] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [showLegalModal, setShowLegalModal] = useState({ open: false, title: '', content: '' });
 
     // Feedback state
     const [rating, setRating] = useState(0);
@@ -14,6 +16,25 @@ const Footer = () => {
 
     // Contact state
     const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+
+    // Subscribe state
+    const [subscribeEmail, setSubscribeEmail] = useState('');
+
+    const handleSubscribe = (e) => {
+        e.preventDefault();
+        if (subscribeEmail) {
+            toast.success("Thank you for subscribing to E-Suraksha updates!");
+            setSubscribeEmail('');
+        }
+    };
+
+    const openLegal = (title) => {
+        setShowLegalModal({
+            open: true,
+            title,
+            content: `This is a placeholder for the ${title}. Information such as data protection guidelines, platform rules, and user disclaimers will appear here in the final deployment.`
+        });
+    };
 
     const handleFeedbackSubmit = (e) => {
         e.preventDefault();
@@ -73,9 +94,9 @@ const Footer = () => {
                     <div>
                         <h3 className="text-white font-bold text-lg mb-6">Legal & Support</h3>
                         <ul className="space-y-4">
-                            <li><Link to="/privacy" className="hover:text-emerald-400 transition-colors">Privacy Policy</Link></li>
-                            <li><Link to="/terms" className="hover:text-emerald-400 transition-colors">Terms of Service</Link></li>
-                            <li><Link to="/faq" className="hover:text-emerald-400 transition-colors">Help Center</Link></li>
+                            <li><button onClick={() => openLegal('Privacy Policy')} className="hover:text-emerald-400 transition-colors text-left">Privacy Policy</button></li>
+                            <li><button onClick={() => openLegal('Terms of Service')} className="hover:text-emerald-400 transition-colors text-left">Terms of Service</button></li>
+                            <li><button onClick={() => openLegal('Help Center')} className="hover:text-emerald-400 transition-colors text-left">Help Center</button></li>
                             <li>
                                 <button
                                     onClick={() => setShowContactModal(true)}
@@ -99,13 +120,16 @@ const Footer = () => {
                     <div>
                         <h3 className="text-white font-bold text-lg mb-6">Stay Updated</h3>
                         <p className="text-gray-400 mb-4">Subscribe to our newsletter for the latest eco-tips and updates.</p>
-                        <form className="flex flex-col gap-3" onSubmit={(e) => e.preventDefault()}>
+                        <form className="flex flex-col gap-3" onSubmit={handleSubscribe}>
                             <input
                                 type="email"
+                                required
+                                value={subscribeEmail}
+                                onChange={(e) => setSubscribeEmail(e.target.value)}
                                 placeholder="Enter your email"
                                 className="w-full bg-gray-800 border-none rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 outline-none"
                             />
-                            <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors">
+                            <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors">
                                 Subscribe
                             </button>
                         </form>
@@ -224,6 +248,25 @@ const Footer = () => {
                         <FaPaperPlane className="text-emerald-300" />
                     </button>
                 </form>
+            </Modal>
+            {/* Legal Modal */}
+            <Modal
+                isOpen={showLegalModal.open}
+                onClose={() => setShowLegalModal({ ...showLegalModal, open: false })}
+                title={showLegalModal.title}
+            >
+                <div className="p-4 space-y-4 text-slate-600 text-sm leading-relaxed">
+                    <p>{showLegalModal.content}</p>
+                    <p>Last updated: {new Date().toLocaleDateString()}</p>
+                </div>
+                <div className="mt-6 flex justify-end">
+                    <button
+                        onClick={() => setShowLegalModal({ ...showLegalModal, open: false })}
+                        className="px-6 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
             </Modal>
         </footer>
     );

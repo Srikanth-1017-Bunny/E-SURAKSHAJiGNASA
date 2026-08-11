@@ -8,6 +8,23 @@ import { toast } from 'react-toastify';
 import AuthLayout from './AuthLayout';
 import { FaUser, FaEnvelope, FaPhone, FaLock, FaCheck, FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 
+const InputField = ({ icon: Icon, type, name, placeholder, value, onChange }) => (
+    <div className="relative group">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-400 transition-colors">
+            <Icon />
+        </div>
+        <input
+            type={type}
+            name={name}
+            required
+            value={value}
+            onChange={onChange}
+            className="w-full pl-11 pr-4 py-4 rounded-xl glass-input outline-none font-bold placeholder-slate-500 transition-all focus:ring-2 focus:ring-emerald-500/20"
+            placeholder={placeholder}
+        />
+    </div>
+);
+
 const SignUpForm = () => {
     const navigate = useNavigate();
     const { signup } = useAuth();
@@ -68,22 +85,6 @@ const SignUpForm = () => {
         }
     };
 
-    const InputField = ({ icon: Icon, type, name, placeholder, value, onChange }) => (
-        <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-400 transition-colors">
-                <Icon />
-            </div>
-            <input
-                type={type}
-                name={name}
-                required
-                value={value}
-                onChange={onChange}
-                className="w-full pl-11 pr-4 py-4 rounded-xl glass-input outline-none font-bold placeholder-slate-500 transition-all focus:ring-2 focus:ring-emerald-500/20"
-                placeholder={placeholder}
-            />
-        </div>
-    );
 
     return (
         <AuthLayout

@@ -41,6 +41,7 @@ const CollectorDashboard = lazy(() => import('../pages/collector/CollectorDashbo
 const TicketsPage = lazy(() => import('../pages/collector/TicketsPage'));
 const RoutePage = lazy(() => import('../pages/collector/RoutePage'));
 const EarningsPage = lazy(() => import('../pages/collector/EarningsPage'));
+const WithdrawalPage = lazy(() => import('../pages/collector/WithdrawalPage'));
 
 const CollectorProfilePage = lazy(() => import('../pages/collector/CollectorProfilePage'));
 const CollectorSettingsPage = lazy(() => import('../pages/collector/CollectorSettingsPage'));
@@ -89,13 +90,13 @@ const AppRoutes = () => {
 
                 {/* Dev Tools */}
                 <Route path="/dev/roles" element={<RoleSwitcher />} />
-                
+
                 {/* Foundation Showcase */}
                 <Route path="/dev/foundation" element={<DashboardLayout role="user" />}>
                     <Route index element={
                         <div className="space-y-6">
                             <h1 className="text-3xl font-bold text-secondary-900 mb-8">E-Suraksha UI Foundation</h1>
-                            
+
                             <Card>
                                 <CardTitle>Buttons</CardTitle>
                                 <CardContent className="flex flex-wrap gap-4 mt-4">
@@ -112,7 +113,7 @@ const AppRoutes = () => {
                                 <CardTitle>Hoverable Data Card</CardTitle>
                                 <CardContent className="mt-4">
                                     <p className="text-secondary-600 mb-4">This card casts a deeper shadow on hover, demonstrating the micro-interactions defined in our new Tailwind configuration.</p>
-                                    
+
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -168,12 +169,13 @@ const AppRoutes = () => {
                     <Route path="tickets" element={<TicketsPage />} />
                     <Route path="route" element={<RoutePage />} />
                     <Route path="earnings" element={<EarningsPage />} />
+                    <Route path="withdraw" element={<WithdrawalPage />} />
 
                     <Route path="history" element={<CollectionHistoryPage />} />
                     <Route path="profile" element={<CollectorProfilePage />} />
                     <Route path="support" element={<ComplaintPage />} />
                     <Route path="settings" element={<CollectorSettingsPage />} />
-                    
+
                     {/* Other existing routes for collector */}
                     <Route path="products" element={<CollectionProductsPage />} />
                     <Route path="complaint" element={<ComplaintPage />} />

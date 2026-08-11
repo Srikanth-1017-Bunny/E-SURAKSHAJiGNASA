@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import {
     Users, Activity, CheckCircle,
@@ -15,8 +15,8 @@ import { useNavigate } from 'react-router-dom';
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl:       'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl:     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
 const makeMapIcon = (color = '#3b82f6') => new L.DivIcon({
@@ -36,9 +36,10 @@ const GovernmentDashboard = () => {
     const navigate = useNavigate();
 
     // Live data states
-    const [activePickups, setActivePickups]         = useState([]);
-    const [completedPickups, setCompletedPickups]   = useState([]);
-    const [pendingTickets, setPendingTickets]        = useState([]);
+    const [activePickups, setActivePickups] = useState([]);
+    const [completedPickups, setCompletedPickups] = useState([]);
+    const [pendingTickets, setPendingTickets] = useState([]);
+    const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
 
     const mapCenter = [17.3850, 78.4867]; // Hyderabad default
 
@@ -69,6 +70,37 @@ const GovernmentDashboard = () => {
         return unsub;
     }, []);
 
+    // ── Real-time: Pending Withdrawals ────────────────────────────────
+    useEffect(() => {
+        const q = query(collection(db, 'withdrawalRequests'), where('status', '==', 'Pending'));
+        const unsub = onSnapshot(q, (snap) => {
+            setPendingWithdrawals(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+        return unsub;
+    }, []);
+
+    const handleApproveWithdrawal = async (id) => {
+        try {
+            await updateDoc(doc(db, 'withdrawalRequests', id), {
+                status: 'Approved',
+                processedAt: serverTimestamp()
+            });
+        } catch (e) {
+            console.error('Error approving withdrawal:', e);
+        }
+    };
+
+    const handleRejectWithdrawal = async (id) => {
+        try {
+            await updateDoc(doc(db, 'withdrawalRequests', id), {
+                status: 'Rejected',
+                processedAt: serverTimestamp()
+            });
+        } catch (e) {
+            console.error('Error rejecting withdrawal:', e);
+        }
+    };
+
     // Derive map markers from active pickups that have coordinates
     const mapMarkers = activePickups
         .filter(a => a.ticketLocation?.lat && a.ticketLocation?.lng)
@@ -91,7 +123,7 @@ const GovernmentDashboard = () => {
         {
             label: 'Active Pickups',
             value: activePickups.length,
-            icon: <Activity size={24} className="text-blue-500"/>,
+            icon: <Activity size={24} className="text-blue-500" />,
             bg: 'bg-blue-50',
             sub: 'Live right now',
             subColor: 'text-blue-500',
@@ -99,7 +131,7 @@ const GovernmentDashboard = () => {
         {
             label: 'Pending Requests',
             value: pendingTickets.length,
-            icon: <FileText size={24} className="text-amber-500"/>,
+            icon: <FileText size={24} className="text-amber-500" />,
             bg: 'bg-amber-50',
             sub: 'Awaiting verification',
             subColor: 'text-amber-500',
@@ -107,7 +139,7 @@ const GovernmentDashboard = () => {
         {
             label: 'Today\'s Completed',
             value: todaysCompleted.length,
-            icon: <CheckCircle size={24} className="text-emerald-500"/>,
+            icon: <CheckCircle size={24} className="text-emerald-500" />,
             bg: 'bg-emerald-50',
             sub: 'OTP verified',
             subColor: 'text-emerald-500',
@@ -115,7 +147,7 @@ const GovernmentDashboard = () => {
         {
             label: 'Total Completed',
             value: completedPickups.length,
-            icon: <TrendingUp size={24} className="text-indigo-500"/>,
+            icon: <TrendingUp size={24} className="text-indigo-500" />,
             bg: 'bg-indigo-50',
             sub: 'All time',
             subColor: 'text-indigo-500',
@@ -134,9 +166,9 @@ const GovernmentDashboard = () => {
         <div className="space-y-6">
 
             {/* ── Header ─────────────────────────────────────────────── */}
-            <header className="flex items-center justify-between bg-gradient-to-r from-emerald-900 to-teal-900 p-6 rounded-2xl shadow-lg border border-emerald-800">
+            <header className="flex items-center justify-between bg-gradient-to-r from-emerald-900 to-teal-900 p-4 md:p-6 rounded-2xl shadow-lg border border-emerald-800 gap-4">
                 <div>
-                    <h1 className="text-2xl font-[1000] text-white tracking-tight drop-shadow-md">Smart City Command Center</h1>
+                    <h1 className="text-lg md:text-2xl font-[1000] text-white tracking-tight drop-shadow-md">Smart City Command Center</h1>
                     <p className="text-xs text-emerald-100 font-bold uppercase tracking-widest mt-1 opacity-90">
                         Live Operations • E-Waste Management Platform
                     </p>
@@ -162,7 +194,7 @@ const GovernmentDashboard = () => {
             </header>
 
             {/* ── KPI Cards ──────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
                 {kpis.map((kpi, i) => (
                     <div key={i} className="bg-white rounded-2xl p-5 border-t-4 border-t-emerald-600 border-x border-b border-slate-200 shadow-md flex flex-col gap-3 hover:shadow-lg transition-all transform hover:-translate-y-1">
                         <div className={`w-12 h-12 rounded-xl ${kpi.bg} flex items-center justify-center shadow-inner`}>
@@ -178,7 +210,7 @@ const GovernmentDashboard = () => {
             </div>
 
             {/* ── Main Grid: Map + Recent Activity ───────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
 
                 {/* Live Operations Map */}
                 <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col" style={{ minHeight: '420px' }}>
@@ -276,24 +308,76 @@ const GovernmentDashboard = () => {
                         <h3 className="text-sm font-black text-white uppercase tracking-widest drop-shadow-sm">Automated Reward Workflow</h3>
                         <span className="text-[10px] font-bold text-emerald-300 bg-emerald-900/50 border border-emerald-500/30 px-2.5 py-0.5 rounded-full backdrop-blur-md shadow-sm">No Manual Approval Needed</span>
                     </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {[
-                        { step: '1', label: 'Citizen Uploads', icon: '📱', color: 'text-blue-400' },
-                        { step: '2', label: 'Officer Assigns Collector', icon: '👮', color: 'text-amber-400' },
-                        { step: '3', label: 'Collector Picks Up', icon: '🚚', color: 'text-purple-400' },
-                        { step: '4', label: 'OTP Verified', icon: '🔐', color: 'text-rose-400' },
-                        { step: '5', label: 'Rewards Auto-Credited', icon: '🟢', color: 'text-emerald-400' },
-                    ].map((s) => (
-                        <div key={s.step} className="flex flex-col items-center text-center gap-2">
-                            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-xl">
-                                {s.icon}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {[
+                            { step: '1', label: 'Citizen Uploads', icon: '📱', color: 'text-blue-400' },
+                            { step: '2', label: 'Officer Assigns Collector', icon: '👮', color: 'text-amber-400' },
+                            { step: '3', label: 'Collector Picks Up', icon: '🚚', color: 'text-purple-400' },
+                            { step: '4', label: 'OTP Verified', icon: '🔐', color: 'text-rose-400' },
+                            { step: '5', label: 'Rewards Auto-Credited', icon: '🟢', color: 'text-emerald-400' },
+                        ].map((s) => (
+                            <div key={s.step} className="flex flex-col items-center text-center gap-2">
+                                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-xl">
+                                    {s.icon}
+                                </div>
+                                <p className={`text-[10px] font-bold ${s.color} uppercase tracking-wider leading-tight`}>{s.label}</p>
                             </div>
-                            <p className={`text-[10px] font-bold ${s.color} uppercase tracking-wider leading-tight`}>{s.label}</p>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
                 </div>
             </div>
+
+            {/* ── Pending Withdrawal Requests Table ──────────────────────── */}
+            {pendingWithdrawals.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6">
+                    <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
+                        <div>
+                            <h2 className="text-base font-bold text-slate-800">Pending Withdrawal Requests</h2>
+                            <p className="text-xs text-slate-400 mt-0.5">Collectors requesting to withdraw their earnings</p>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                                    <th className="px-6 py-3 text-left">Collector</th>
+                                    <th className="px-4 py-3 text-left">Amount (₹)</th>
+                                    <th className="px-4 py-3 text-left">Method</th>
+                                    <th className="px-4 py-3 text-left">Details</th>
+                                    <th className="px-4 py-3 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {pendingWithdrawals.map((w, i) => (
+                                    <tr key={w.id || i} className="hover:bg-slate-50/60 transition-colors">
+                                        <td className="px-6 py-4 text-xs font-bold text-slate-700">{w.collectorName || '—'}</td>
+                                        <td className="px-4 py-4 text-sm font-black text-emerald-600">₹{w.amount}</td>
+                                        <td className="px-4 py-4 text-xs font-semibold text-slate-600">{w.method}</td>
+                                        <td className="px-4 py-4 text-[10px] text-slate-500">
+                                            {w.method === 'UPI' ? (
+                                                <p><span className="font-bold">UPI ID:</span> {w.upiId}</p>
+                                            ) : (
+                                                <>
+                                                    <p><span className="font-bold">Bank:</span> {w.bankDetails?.bankName}</p>
+                                                    <p><span className="font-bold">A/C:</span> {w.bankDetails?.accountNumber}</p>
+                                                    <p><span className="font-bold">IFSC:</span> {w.bankDetails?.ifscCode}</p>
+                                                    <p><span className="font-bold">Name:</span> {w.bankDetails?.accountHolder}</p>
+                                                </>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={() => handleApproveWithdrawal(w.id)} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-bold text-[10px] rounded-lg">Approve</button>
+                                                <button onClick={() => handleRejectWithdrawal(w.id)} className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 font-bold text-[10px] rounded-lg">Reject</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* ── Recent Completed Pickups Table ──────────────────────── */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">

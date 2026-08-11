@@ -108,7 +108,7 @@ const UserDashboard = () => {
                     variants={itemVariants}
                     initial="hidden"
                     animate="visible"
-                    className="relative bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-900 rounded-[2rem] p-8 md:p-12 overflow-hidden shadow-2xl shadow-teal-900/20 border border-teal-700/50 flex flex-col md:flex-row items-center justify-between gap-8"
+                    className="relative bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-900 rounded-[2rem] p-6 md:p-12 overflow-hidden shadow-2xl shadow-teal-900/20 border border-teal-700/50 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8"
                 >
                     <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1518005020951-eccb494ad742?q=80&w=1200")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-teal-950/90 via-teal-900/80 to-transparent z-10"></div>
@@ -118,8 +118,8 @@ const UserDashboard = () => {
                             <Leaf size={14} className="text-emerald-400" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-100">Green City Hero</span>
                         </div>
-                        <h2 className="text-3xl md:text-5xl font-[1000] tracking-tighter leading-tight">
-                            🌍 Welcome back, <span className="text-emerald-400">{currentUser?.displayName?.split(' ')[0] || 'Srikanth'}!</span>
+                        <h2 className="text-2xl md:text-5xl font-[1000] tracking-tighter leading-tight">
+                            🌍 Welcome back, <span className="text-emerald-400">{(currentUser?.name?.split(' ')[0] || currentUser?.displayName?.split(' ')[0] || 'Eco Warrior')}!</span>
                         </h2>
                         <p className="text-teal-100 text-lg font-medium leading-relaxed">
                             Let's make our city cleaner, one device at a time. You've already recycled <strong className="text-white">{stats.recycled} devices</strong> and prevented <strong className="text-emerald-300">24 kg of CO₂ emissions</strong>.
@@ -127,7 +127,7 @@ const UserDashboard = () => {
                     </div>
 
                     <div className="relative z-20 hidden md:block w-64 h-64">
-                        <img src="https://illustrations.popsy.co/amber/environment.svg" alt="Environment Illustration" className="w-full h-full object-contain filter drop-shadow-2xl" />
+                        <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=800&q=80" alt="Environment Illustration" className="w-full h-full object-cover rounded-[2rem] filter drop-shadow-2xl opacity-90 border-4 border-white/20" />
                     </div>
                 </motion.div>
 
@@ -203,7 +203,7 @@ const UserDashboard = () => {
                 {/* Featured Banner - AI Scan */}
                 <motion.div
                     variants={itemVariants}
-                    className="relative bg-slate-900 rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-8"
+                    className="relative bg-slate-900 rounded-[2rem] p-6 md:p-12 overflow-hidden shadow-2xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8"
                 >
                     <div className="absolute inset-0 opacity-40">
                         <img src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1200" alt="Tech Background" className="w-full h-full object-cover" />
@@ -226,7 +226,7 @@ const UserDashboard = () => {
                     </div>
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {/* Environmental Storytelling */}
                     <div className="lg:col-span-1 space-y-4">
                         <h3 className="text-lg font-[1000] text-slate-900 uppercase">Your Impact</h3>
