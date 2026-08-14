@@ -26,7 +26,6 @@ const RewardsPage = () => {
             { id: 5, brand: 'Nano Banana', offer: 'Smart Watch Series X', image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?auto=format&fit=crop&w=400', bg: 'bg-slate-100', coins: 8000, isNew: true, icon: <FaMicrochip /> },
         ],
         Merch: [
-            { id: 6, brand: 'Nano Banana', offer: 'Eco-Friendly Tote Bag', image: 'https://images.unsplash.com/photo-1597484661643-2f5fef640df1?auto=format&fit=crop&w=400', bg: 'bg-[#E6F4EA]', coins: 1500, icon: <FaTshirt /> },
             { id: 9, brand: 'Nano Banana', offer: 'Recycled Plastic Bottle Tee', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400', bg: 'bg-white', coins: 2500, icon: <FaTshirt /> },
         ],
         Donations: [

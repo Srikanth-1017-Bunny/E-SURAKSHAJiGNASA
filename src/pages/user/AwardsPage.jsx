@@ -26,7 +26,6 @@ const AwardsPage = () => {
             { id: 5, brand: 'Nano Banana', offer: 'Smart Watch Series X', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000&auto=format&fit=crop', bg: 'bg-slate-100', coins: 8000, isNew: true, icon: <FaMicrochip /> },
         ],
         Merch: [
-            { id: 6, brand: 'Nano Banana', offer: 'Eco-Friendly Tote Bag', image: 'https://images.unsplash.com/photo-1544816153-12ad58bfc518?q=80&w=2000&auto=format&fit=crop&q=80', bg: 'bg-[#E6F4EA]', coins: 1500, icon: <FaTshirt /> },
             { id: 9, brand: 'Nano Banana', offer: 'Recycled Plastic Bottle Tee', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=2000&auto=format&fit=crop', bg: 'bg-white', coins: 2500, icon: <FaTshirt /> },
         ],
         Donations: [

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, doc, updateDoc, addDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
-import { Search, X, MapPin, Clock, UserCheck, FileText, Navigation } from 'lucide-react';
+import { Search, X, MapPin, Clock, UserCheck, FileText, Navigation, CheckCircle, Building2, Star, Zap } from 'lucide-react';
 
 const formatTime = (ts) => {
     if (!ts) return 'N/A';
@@ -43,6 +43,23 @@ const haversineKm = (lat1, lng1, lat2, lng2) => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+// Extract city name from address string
+const extractCity = (address = '') => {
+    const lower = address.toLowerCase();
+    if (lower.includes('hyderabad') || lower.includes('hyd')) return 'Hyderabad';
+    if (lower.includes('nizamabad') || lower.includes('nzb')) return 'Nizamabad';
+    if (lower.includes('medchal') || lower.includes('med')) return 'Medchal';
+    return null;
+};
+
+const COLLECTOR_COLORS = [
+    'from-blue-500 to-indigo-600',
+    'from-emerald-500 to-teal-600',
+    'from-violet-500 to-purple-600',
+    'from-rose-500 to-pink-600',
+    'from-amber-500 to-orange-600',
+];
+
 const GovTicketsPage = () => {
     const [allTickets, setAllTickets] = useState([]);
     const [collectors, setCollectors] = useState([]);
@@ -83,26 +100,43 @@ const GovTicketsPage = () => {
         (t.pickupAddress || '').toLowerCase().includes(search.toLowerCase())
     );
 
-    // Sort collectors by distance from the ticket's pickup location (Haversine)
+    // Get the city from the ticket's address
+    const ticketCity = useMemo(() => {
+        if (!assignModal) return null;
+        return extractCity(assignModal.pickupAddress || '');
+    }, [assignModal]);
+
+    // Filter collectors by city, then sort by distance
     const sortedCollectors = useMemo(() => {
         if (!assignModal) return collectors;
         const ticketLat = assignModal.location?.lat;
         const ticketLng = assignModal.location?.lng;
+        const city = extractCity(assignModal.pickupAddress || '');
 
-        return [...collectors].map(c => {
-            const cLat = c.location?.lat || c.address?.location?.lat;
-            const cLng = c.location?.lng || c.address?.location?.lng;
-            let distKm = null;
-            if (ticketLat && ticketLng && cLat && cLng) {
-                distKm = haversineKm(ticketLat, ticketLng, cLat, cLng);
-            }
-            return { ...c, distKm };
-        }).sort((a, b) => {
-            if (a.distKm === null && b.distKm === null) return 0;
-            if (a.distKm === null) return 1;
-            if (b.distKm === null) return -1;
-            return a.distKm - b.distKm;
-        });
+        return [...collectors]
+            .filter(c => {
+                // If we can identify the ticket's city, only show collectors from that city
+                if (city) {
+                    const cCity = c.address?.city || '';
+                    return cCity.toLowerCase() === city.toLowerCase();
+                }
+                return true;
+            })
+            .map(c => {
+                const cLat = c.location?.lat || c.address?.lat;
+                const cLng = c.location?.lng || c.address?.lng;
+                let distKm = null;
+                if (ticketLat && ticketLng && cLat && cLng) {
+                    distKm = haversineKm(ticketLat, ticketLng, cLat, cLng);
+                }
+                return { ...c, distKm };
+            })
+            .sort((a, b) => {
+                if (a.distKm === null && b.distKm === null) return 0;
+                if (a.distKm === null) return 1;
+                if (b.distKm === null) return -1;
+                return a.distKm - b.distKm;
+            });
     }, [assignModal, collectors]);
 
     const handleAssign = async () => {
@@ -227,67 +261,173 @@ const GovTicketsPage = () => {
                 </div>
             )}
 
-            {/* Assign Modal */}
+            {/* ── Assign Modal ── */}
             {assignModal && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setAssignModal(null)} />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 text-white">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-black">Assign Collector</h2>
-                                <button onClick={() => setAssignModal(null)} className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30"><X size={15} /></button>
-                            </div>
-                            <p className="text-blue-200 text-xs mt-1">{assignModal.deviceBrand} {assignModal.deviceModel} · {assignModal.ticketId}</p>
-                            {assignModal.pickupAddress && (
-                                <p className="text-blue-100 text-xs mt-0.5 flex items-center gap-1">
-                                    <MapPin size={10} /> {assignModal.pickupAddress}
-                                </p>
-                            )}
-                        </div>
-                        <div className="p-5">
-                            <div className="flex items-center justify-between mb-3">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                    Collectors — Sorted by Proximity ({collectors.length})
-                                </p>
-                                {assignModal.location?.lat && (
-                                    <span className="text-[9px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full border border-blue-100 flex items-center gap-1">
-                                        <Navigation size={8} /> Location-based
-                                    </span>
-                                )}
-                            </div>
-                            <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
-                                {sortedCollectors.map(c => (
-                                    <div key={c.uid} onClick={() => setSelected(c)}
-                                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selected?.uid === c.uid ? 'border-blue-500 bg-blue-50' : 'border-slate-100 hover:border-blue-200 hover:bg-slate-50'}`}>
-                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-sm flex-shrink-0">
-                                            {(c.displayName || c.name || c.email || '?').charAt(0).toUpperCase()}
+                    <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={() => setAssignModal(null)} />
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 p-6 text-white relative overflow-hidden">
+                            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+                            <div className="relative z-10">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <UserCheck size={18} className="text-blue-200" />
+                                            <h2 className="text-lg font-black tracking-tight">Assign Collector</h2>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-sm text-slate-800">{c.displayName || c.name || c.email?.split('@')[0]}</p>
-                                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                                {c.address?.city && <p className="text-xs text-slate-400">{c.address.city}</p>}
-                                                {c.distKm !== null ? (
-                                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${c.distKm < 5 ? 'bg-emerald-100 text-emerald-700' : c.distKm < 15 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                        📍 {c.distKm < 1 ? `${Math.round(c.distKm * 1000)}m` : `${c.distKm.toFixed(1)} km`}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400">
-                                                        Unknown location
-                                                    </span>
-                                                )}
+                                        <p className="text-blue-200 text-sm font-semibold">
+                                            {assignModal.deviceBrand} {assignModal.deviceModel}
+                                            {assignModal.ticketId && <span className="text-blue-300 ml-2">· #{assignModal.ticketId}</span>}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => setAssignModal(null)}
+                                        className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors flex-shrink-0">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+
+                                {/* Ticket Info Pills */}
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    {assignModal.pickupAddress && (
+                                        <span className="flex items-center gap-1.5 text-[11px] font-bold bg-white/15 px-3 py-1.5 rounded-full border border-white/20">
+                                            <MapPin size={11} /> {assignModal.pickupAddress}
+                                        </span>
+                                    )}
+                                    {ticketCity && (
+                                        <span className="flex items-center gap-1.5 text-[11px] font-bold bg-emerald-400/30 text-emerald-100 px-3 py-1.5 rounded-full border border-emerald-300/30">
+                                            <Building2 size={11} /> {ticketCity} Zone
+                                        </span>
+                                    )}
+                                    {assignModal.estimatedValue > 0 && (
+                                        <span className="flex items-center gap-1.5 text-[11px] font-bold bg-amber-400/30 text-amber-100 px-3 py-1.5 rounded-full border border-amber-300/30">
+                                            ₹{assignModal.estimatedValue} Value
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Collectors List */}
+                        <div className="p-5">
+                            {/* Section Label */}
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <p className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                                        {ticketCity ? `${ticketCity} Collectors` : 'Available Collectors'}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5 font-semibold">
+                                        {sortedCollectors.length} collector{sortedCollectors.length !== 1 ? 's' : ''} available
+                                        {assignModal.location?.lat && ' · Sorted by proximity'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    {assignModal.location?.lat && (
+                                        <span className="text-[9px] font-bold px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 flex items-center gap-1">
+                                            <Navigation size={8} /> Location-based
+                                        </span>
+                                    )}
+                                    {ticketCity && (
+                                        <span className="text-[9px] font-bold px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 flex items-center gap-1">
+                                            <Zap size={8} /> City filtered
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {sortedCollectors.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                                    <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-3 text-2xl">🚫</div>
+                                    <p className="font-bold text-sm text-slate-600">No collectors in {ticketCity || 'this area'}</p>
+                                    <p className="text-xs text-slate-400 mt-1">Add collectors for this zone to get started</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-72 overflow-y-auto pr-1 -mr-1">
+                                    {sortedCollectors.map((c, idx) => (
+                                        <div key={c.uid} onClick={() => setSelected(c)}
+                                            className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-150 ${selected?.uid === c.uid
+                                                ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100'
+                                                : 'border-slate-100 hover:border-blue-200 hover:bg-slate-50'
+                                                }`}>
+                                            {/* Avatar */}
+                                            <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${COLLECTOR_COLORS[idx % COLLECTOR_COLORS.length]} text-white flex items-center justify-center font-black text-base flex-shrink-0 shadow-sm`}>
+                                                {(c.displayName || c.name || c.email || '?').charAt(0).toUpperCase()}
+                                            </div>
+
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-black text-sm text-slate-800 truncate">
+                                                        {c.displayName || c.name || c.email?.split('@')[0]}
+                                                    </p>
+                                                    {idx === 0 && (
+                                                        <span className="text-[9px] bg-amber-100 text-amber-700 font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 flex-shrink-0">
+                                                            <Star size={7} className="fill-amber-500" /> Nearest
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                    {c.address?.city && (
+                                                        <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+                                                            <Building2 size={9} /> {c.address.city}
+                                                        </span>
+                                                    )}
+                                                    {c.distKm !== null ? (
+                                                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${c.distKm < 5 ? 'bg-emerald-100 text-emerald-700' : c.distKm < 15 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                            📍 {c.distKm < 1 ? `${Math.round(c.distKm * 1000)}m away` : `${c.distKm.toFixed(1)} km away`}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                                                            Location not set
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Radio */}
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected?.uid === c.uid ? 'border-blue-500 bg-blue-500 scale-110' : 'border-slate-300'}`}>
+                                                {selected?.uid === c.uid && <div className="w-2 h-2 bg-white rounded-full" />}
                                             </div>
                                         </div>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selected?.uid === c.uid ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}`}>
-                                            {selected?.uid === c.uid && <div className="w-2 h-2 bg-white rounded-full" />}
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Selected summary */}
+                            {selected && (
+                                <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-2">
+                                    <CheckCircle size={14} className="text-blue-600 flex-shrink-0" />
+                                    <p className="text-xs font-bold text-blue-700">
+                                        Assigning to <span className="text-blue-900">{selected.displayName || selected.name}</span>
+                                        {selected.address?.city && <span className="font-normal text-blue-600"> · {selected.address.city}</span>}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* OTP Note */}
+                            <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-center gap-2">
+                                <span className="text-base flex-shrink-0">🔐</span>
+                                <p className="text-[10px] font-bold text-amber-700">
+                                    A 6-digit OTP will be auto-generated and shown to the citizen for verification at pickup.
+                                </p>
                             </div>
-                            <div className="flex gap-3">
-                                <button onClick={() => setAssignModal(null)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50">Cancel</button>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3 mt-4">
+                                <button onClick={() => setAssignModal(null)}
+                                    className="flex-1 py-3 border-2 border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">
+                                    Cancel
+                                </button>
                                 <button onClick={handleAssign} disabled={!selected || assigning}
-                                    className={`flex-1 py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 ${selected && !assigning ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md' : 'bg-slate-300 cursor-not-allowed'}`}>
-                                    {assigning ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><UserCheck size={14} /> Assign</>}
+                                    className={`flex-1 py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all ${selected && !assigning
+                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-200'
+                                        : 'bg-slate-200 cursor-not-allowed text-slate-400'
+                                        }`}>
+                                    {assigning
+                                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        : <><UserCheck size={16} /> Confirm Assignment</>
+                                    }
                                 </button>
                             </div>
                         </div>

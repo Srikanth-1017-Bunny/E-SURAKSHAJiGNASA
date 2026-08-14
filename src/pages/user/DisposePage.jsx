@@ -21,7 +21,7 @@ const CATEGORIES = [
     { id: 'Television', name: 'Television', icon: Tv, baseValue: 2000, desc: 'LED, LCD, CRT Televisions', image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?q=80&w=600&auto=format&fit=crop' },
     { id: 'Refrigerator', name: 'Refrigerator', icon: ShieldAlert, baseValue: 4000, desc: 'Single door, Double door, Deep freezers', image: 'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?q=80&w=600&auto=format&fit=crop' },
     { id: 'Washing Machine', name: 'Washing Machine', icon: RefreshCw, baseValue: 3500, desc: 'Front load, Top load washing machines', image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?q=80&w=600&auto=format&fit=crop' },
-    { id: 'Air Conditioner', name: 'Air Conditioner', icon: Wind, baseValue: 5000, desc: 'Split AC, Window AC, Inverter AC', image: 'https://images.unsplash.com/photo-1527344199923-a5c328e35759?auto=format&fit=crop&w=600' },
+    { id: 'Air Conditioner', name: 'Air Conditioner', icon: Wind, baseValue: 5000, desc: 'Split AC, Window AC, Inverter AC', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600' },
     { id: 'Microwave', name: 'Microwave', icon: Microwave, baseValue: 1500, desc: 'Solo, Grill, Convection Microwaves', image: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600' },
     { id: 'Camera', name: 'Camera', icon: Camera, baseValue: 4000, desc: 'DSLR, Mirrorless, Point & Shoot', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600&auto=format&fit=crop' },
     { id: 'Printer', name: 'Printer', icon: Printer, baseValue: 1200, desc: 'Laser, Inkjet, All-in-One Printers', image: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?q=80&w=600&auto=format&fit=crop' },
@@ -419,8 +419,8 @@ const DisposePage = () => {
                                         key={cond.id}
                                         onClick={() => handleConditionChange(cond.id)}
                                         className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${deviceCondition === cond.id
-                                                ? 'border-emerald-600 bg-emerald-50/30'
-                                                : 'border-slate-200 hover:border-emerald-300'
+                                            ? 'border-emerald-600 bg-emerald-50/30'
+                                            : 'border-slate-200 hover:border-emerald-300'
                                             }`}
                                     >
                                         <div className="flex items-start gap-4">
@@ -545,7 +545,7 @@ const DisposePage = () => {
                                             <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-bl-full -z-0"></div>
                                             <div className="flex items-center gap-2 text-emerald-800 mb-3 relative z-10">
                                                 <div className="p-1.5 bg-emerald-100 rounded-lg"><Sparkles size={16} /></div>
-                                                <span className="text-xs font-black uppercase tracking-wider">AI Scanner Breakdown</span>
+                                                <span className="text-xs font-black uppercase tracking-wider">AI Scanner Result</span>
                                             </div>
                                             <p className="text-[11px] font-bold text-slate-500 mb-3 relative z-10">
                                                 Detected: <span className="text-slate-900 font-extrabold text-sm">{aiResult.detectedItem}</span>
@@ -565,12 +565,12 @@ const DisposePage = () => {
                                                 </div>
                                             )}
 
-                                            {aiResult.ecoPoints && (
+                                            {/* {aiResult.ecoPoints && (
                                                 <div className="mt-3 flex items-center justify-between border-t border-emerald-100 pt-3 relative z-10">
-                                                    <span className="text-xs font-bold text-slate-600">Estimated Eco-Points</span>
+                                                    <span className="text-xs font-bold text-slate-600">Estimated Eco-Coins</span>
                                                     <span className="text-lg font-black text-emerald-600">+{aiResult.ecoPoints}</span>
                                                 </div>
-                                            )}
+                                            )} */}
                                         </div>
                                     )}
                                 </div>
