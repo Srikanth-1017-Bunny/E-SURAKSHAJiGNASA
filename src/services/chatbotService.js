@@ -15,9 +15,12 @@ import {
  */
 export const getChatResponse = async (userMessage) => {
     try {
-        const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-        if (!apiKey) {
-            return { text: "Please add VITE_GROQ_API_KEY to your .env file." };
+        const openRouterApiKey = import.meta.env.VITE_OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER_KEY;
+        const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        const groqApiKey = import.meta.env.VITE_GROQ_API_KEY;
+
+        if (!openRouterApiKey && !geminiApiKey && !groqApiKey) {
+            return { text: "Please add an API key (OpenRouter, Gemini, or Groq) to your .env file to enable the chat assistant." };
         }
 
         const SYSTEM_PROMPT = `You are Jignasa AI, the official E-Waste Assistant for the E-Suraksha platform.
@@ -49,33 +52,87 @@ STRICT RULES:
         if (lowerMsg.includes("reward") || lowerMsg.includes("coin") || lowerMsg.includes("point")) return { text: KNOWLEDGE_BASE.rewards };
         if (lowerMsg.includes("contact") || lowerMsg.includes("support") || lowerMsg.includes("help")) return { text: KNOWLEDGE_BASE.contact };
 
-        // Call Groq API
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: "llama3-8b-8192",
-                messages: [
-                    { role: "system", content: SYSTEM_PROMPT },
-                    { role: "user", content: userMessage }
-                ],
-                max_tokens: 200,
-                temperature: 0.5
-            }),
-        });
+        // 1. Try OpenRouter API first
+        if (openRouterApiKey) {
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${openRouterApiKey}`
+                },
+                body: JSON.stringify({
+                    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+                    messages: [
+                        { role: "system", "content": SYSTEM_PROMPT },
+                        { role: "user", "content": userMessage }
+                    ]
+                })
+            });
 
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || `Groq API Error: ${response.status} ${response.statusText}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.choices && data.choices.length > 0) {
+                    return { text: data.choices[0].message.content };
+                }
+            }
+
+            console.warn("OpenRouter API error, falling back if other APIs are available...");
         }
 
-        const data = await response.json();
-        return {
-            text: data.choices[0].message.content
-        };
+        // 2. Try Gemini API
+        if (geminiApiKey) {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    systemInstruction: {
+                        parts: [{ text: SYSTEM_PROMPT }]
+                    },
+                    contents: [
+                        { parts: [{ text: userMessage }] }
+                    ]
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return { text: data.candidates[0].content.parts[0].text };
+            }
+
+            console.warn("Gemini API error, falling back if Groq available...");
+        }
+
+        // 3. Fallback to Groq API
+        if (groqApiKey) {
+            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${groqApiKey}`
+                },
+                body: JSON.stringify({
+                    model: "llama3-8b-8192",
+                    messages: [
+                        { role: "system", content: SYSTEM_PROMPT },
+                        { role: "user", content: userMessage }
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.5
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return { text: data.choices[0].message.content };
+            }
+
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error?.message || `Groq API Error: ${response.status}`);
+        }
+
+        throw new Error("API call failed.");
     } catch (error) {
         console.error("Error getting chat response:", error);
         return {
